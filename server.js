@@ -7,47 +7,54 @@ const app = express();
 app.use(cors());
 
 // Your Companies House API key
-const API_KEY = process.env.COMPANIES_HOUSE_API_KEY; // Replace with your real API key
+const API_KEY = process.env.COMPANIES_HOUSE_API_KEY; // <<< Replace this with your real API key
 
-// Endpoint to fetch companies incorporated in the last 3 years and submitted their first set of accounts last month
+// Endpoint to fetch companies with first accounts filed last month
 app.get('/new-companies', async (req, res) => {
     try {
         const today = dayjs();
-        const threeYearsAgo = today.subtract(3, 'year').startOf('year').format('YYYY-MM-DD');
         const lastMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
         const lastMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
 
-        // Call Companies House API to get companies
+        const threeYearsAgo = today.subtract(3, 'years').startOf('year').format('YYYY-MM-DD');
+
+        // Call Companies House API
         const response = await axios.get(`https://api.company-information.service.gov.uk/advanced-search/companies`, {
             auth: {
                 username: API_KEY,
                 password: ''
             },
             params: {
-                incorporation_date_from: threeYearsAgo, // Only companies incorporated in the last 3 years
-                incorporation_date_to: today.format('YYYY-MM-DD'), // Up to today
+                incorporation_date_from: threeYearsAgo,
+                incorporation_date_to: today.format('YYYY-MM-DD'),
                 company_status: 'active',
                 company_type: 'ltd',
-                size: 100 // Adjust as necessary
+                size: 100
             }
         });
 
-        // Filter companies that have submitted their first set of accounts (in the last month)
+        // Filter companies based on creation date and last accounts made up to the last month
         const companies = response.data.items.filter(company => {
-            const accountsDate = company.accounts.first_accounts_date;
-            if (accountsDate) {
-                const accountDate = dayjs(accountsDate);
-                return accountDate.isBetween(lastMonthStart, lastMonthEnd, null, '[]');
-            }
-            return false;
+            // Check if company creation date is within the last 3 years
+            const creationDateValid = dayjs(company.date_of_creation).isAfter(threeYearsAgo);
+            
+            // Check if company has made accounts up to last month
+            const lastAccountsValid = company.last_accounts && company.last_accounts.date_of_accounts 
+                && dayjs(company.last_accounts.date_of_accounts).isBefore(lastMonthEnd) 
+                && dayjs(company.last_accounts.date_of_accounts).isAfter(lastMonthStart);
+
+            return creationDateValid && lastAccountsValid;
         });
 
-        res.json(companies); // Return filtered companies
+        res.json(companies);
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error fetching new companies');
+        console.error('Error fetching companies:', error);
+        res.status(500).send('Error fetching companies');
     }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`New Companies Proxy running on port ${PORT}`));
+
+
+
