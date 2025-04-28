@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 
 // Companies House API Key
-const API_KEY = 'your-api-key-here'; // <<< PUT YOUR API KEY
+const API_KEY = '4202e72a-2ae8-4e8b-8820-7373283102d3'; // <<< PUT YOUR API KEY
 
 // Endpoint to fetch companies with accounts made up last month
 app.get('/new-companies-monthly', async (req, res) => {
