@@ -1,4 +1,5 @@
 {
+{
   "name": "companies-house-new-companies-proxy",
   "version": "1.0.0",
   "description": "Proxy server to fetch new companies filing first accounts",
@@ -12,5 +13,5 @@
     "dayjs": "^1.11.10",
     "express": "^4.18.2"
   },
-  "type": "module"  // Add this line to specify ES modules
+  "type": "module"  // No comma after this line
 }
