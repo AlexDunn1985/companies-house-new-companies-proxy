@@ -6,8 +6,8 @@ import dayjs from 'dayjs';
 const app = express();
 app.use(cors());
 
-// Your real Companies House API Key
-const API_KEY = '4202e72a-2ae8-4e8b-8820-7373283102d3'; // <<< your real API key
+// Your Companies House API Key
+const API_KEY = '4202e72a-2ae8-4e8b-8820-7373283102d3'; // Replace with your real API key
 
 // Endpoint to fetch companies that filed first accounts LAST MONTH and are less than 3 years old
 app.get('/new-companies-monthly', async (req, res) => {
@@ -18,7 +18,7 @@ app.get('/new-companies-monthly', async (req, res) => {
         const lastMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
         const lastMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
 
-        console.log(`Looking for filings between ${lastMonthStart} and ${lastMonthEnd}`);
+        console.log(`Searching for companies filed accounts between ${lastMonthStart} and ${lastMonthEnd}`);
 
         // Call Companies House API
         const response = await axios.get('https://api.company-information.service.gov.uk/advanced-search/companies', {
@@ -33,6 +33,8 @@ app.get('/new-companies-monthly', async (req, res) => {
                 size: 100
             }
         });
+
+        console.log('API response:', response.data); // Print full response to inspect
 
         const companies = response.data.items || [];
         console.log(`Total companies found: ${companies.length}`);
@@ -60,6 +62,7 @@ app.get('/new-companies-monthly', async (req, res) => {
             );
         });
 
+        console.log('Filtered companies:', companiesWithFirstAccounts); // Inspect filtered results
         res.json(companiesWithFirstAccounts);
     } catch (error) {
         console.error(error?.response?.data || error.message);
@@ -70,4 +73,3 @@ app.get('/new-companies-monthly', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Monthly New Companies Proxy running on port ${PORT}`));
-
