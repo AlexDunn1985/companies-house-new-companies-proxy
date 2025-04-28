@@ -9,19 +9,16 @@ app.use(cors());
 // ✅ Your real Companies House API Key
 const API_KEY = '4202e72a-2ae8-4e8b-8820-7373283102d3'; // <<< your real API key
 
-// ✅ Endpoint to fetch companies that filed first accounts last week
-app.get('/new-companies-weekly', async (req, res) => {
+// ✅ Endpoint to fetch companies that filed first accounts LAST MONTH
+app.get('/new-companies-monthly', async (req, res) => {
     try {
         const today = dayjs();
 
-        // Calculate last week's Monday and Sunday
-        const lastMonday = today.subtract(today.day() + 6, 'day').startOf('day'); // .day() gives 0 (Sunday) to 6 (Saturday)
-        const lastSunday = lastMonday.add(6, 'day').endOf('day');
+        // Calculate last month's start and end dates
+        const lastMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+        const lastMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
 
-        const lastMondayStr = lastMonday.format('YYYY-MM-DD');
-        const lastSundayStr = lastSunday.format('YYYY-MM-DD');
-
-        console.log(`Looking for filings from ${lastMondayStr} to ${lastSundayStr}`);
+        console.log(`Looking for filings between ${lastMonthStart} and ${lastMonthEnd}`);
 
         // Call Companies House API
         const response = await axios.get('https://api.company-information.service.gov.uk/advanced-search/companies', {
@@ -38,26 +35,27 @@ app.get('/new-companies-weekly', async (req, res) => {
 
         const companies = response.data.items || [];
 
-        // Filter companies whose first accounts were made up to last week
-        const firstAccountsLastWeek = companies.filter(company => {
+        // Filter companies whose FIRST accounts were made up last month
+        const companiesWithFirstAccounts = companies.filter(company => {
             const accounts = company.accounts || {};
-            const madeUpToDate = accounts.last_accounts?.made_up_to;
+            const lastAccounts = accounts.last_accounts || {};
 
-            if (!madeUpToDate) return false;
+            if (!lastAccounts.made_up_to || accounts.overdue) return false;
 
-            const madeUpToDateDate = dayjs(madeUpToDate);
+            const madeUpToDate = dayjs(lastAccounts.made_up_to);
 
-            return madeUpToDateDate.isAfter(lastMonday) && madeUpToDateDate.isBefore(lastSunday);
+            return madeUpToDate.isAfter(lastMonthStart) && madeUpToDate.isBefore(lastMonthEnd);
         });
 
-        res.json(firstAccountsLastWeek);
+        res.json(companiesWithFirstAccounts);
 
     } catch (error) {
         console.error(error?.response?.data || error.message);
-        res.status(500).send('Error fetching weekly new companies');
+        res.status(500).send('Error fetching monthly new companies');
     }
 });
 
 // ✅ Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Weekly New Companies Proxy running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Monthly New Companies Proxy running on port ${PORT}`));
+
