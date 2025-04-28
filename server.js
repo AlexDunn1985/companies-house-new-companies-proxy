@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 const app = express();
 app.use(cors());
 
-const API_KEY = 'your-actual-api-key-here'; // Replace correctly
+const API_KEY = '4202e72a-2ae8-4e8b-8820-7373283102d3'; // Replace correctly
 
 // Endpoint to fetch companies that:
 // - Incorporated less than 3 years ago
