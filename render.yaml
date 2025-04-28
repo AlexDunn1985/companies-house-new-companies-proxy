@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: companies-house-new-companies-proxy
+    env: node
+    plan: starter  # 👈 This line tells Render to use Starter plan!
+    buildCommand: npm install
+    startCommand: node server.js
+    branch: main
+    autoDeploy: true
