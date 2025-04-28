@@ -6,46 +6,48 @@ import dayjs from 'dayjs';
 const app = express();
 app.use(cors());
 
-const API_KEY = process.env.COMPANIES_HOUSE_API_KEY; // Replace correctly
+// Your Companies House API key
+const API_KEY = process.env.COMPANIES_HOUSE_API_KEY; // Replace with your real API key
 
-// Endpoint to fetch companies that:
-// - Incorporated less than 3 years ago
-// - Filed accounts last month
-// - Are active
-// - Are Ltd
+// Endpoint to fetch companies incorporated in the last 3 years and submitted their first set of accounts last month
 app.get('/new-companies', async (req, res) => {
-  try {
-    const today = dayjs();
-    const threeYearsAgo = today.subtract(3, 'year').format('YYYY-MM-DD');
-    const lastMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
-    const lastMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
+    try {
+        const today = dayjs();
+        const threeYearsAgo = today.subtract(3, 'year').startOf('year').format('YYYY-MM-DD');
+        const lastMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+        const lastMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
 
-    const response = await axios.get('https://api.company-information.service.gov.uk/advanced-search/companies', {
-      auth: {
-        username: API_KEY,
-        password: ''
-      },
-      params: {
-        company_status: 'active',
-        company_type: 'ltd',
-        incorporated_from: threeYearsAgo, // Companies created in the last 3 years
-        accounts_made_up_to_from: lastMonthStart, // Accounts submitted during last month
-        accounts_made_up_to_to: lastMonthEnd,
-        size: 100
-      }
-    });
+        // Call Companies House API to get companies
+        const response = await axios.get(`https://api.company-information.service.gov.uk/advanced-search/companies`, {
+            auth: {
+                username: API_KEY,
+                password: ''
+            },
+            params: {
+                incorporation_date_from: threeYearsAgo, // Only companies incorporated in the last 3 years
+                incorporation_date_to: today.format('YYYY-MM-DD'), // Up to today
+                company_status: 'active',
+                company_type: 'ltd',
+                size: 100 // Adjust as necessary
+            }
+        });
 
-    const companies = response.data.items || [];
+        // Filter companies that have submitted their first set of accounts (in the last month)
+        const companies = response.data.items.filter(company => {
+            const accountsDate = company.accounts.first_accounts_date;
+            if (accountsDate) {
+                const accountDate = dayjs(accountsDate);
+                return accountDate.isBetween(lastMonthStart, lastMonthEnd, null, '[]');
+            }
+            return false;
+        });
 
-    console.log(`Found ${companies.length} companies`);
-
-    // ✅ Send back the data properly
-    res.json(companies);
-  } catch (error) {
-    console.error('Error fetching companies:', error.message);
-    res.status(500).send('Error fetching companies');
-  }
+        res.json(companies); // Return filtered companies
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error fetching new companies');
+    }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`New Companies Proxy running on port ${PORT}`));
